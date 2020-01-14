@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wms.mapper.ProductStockMapper">
+    <resultMap id="BaseResultMap" type="com.wms.domain.ProductStock">
+        <id column="id" property="id"/>
+        <result column="price" property="price"/>
+        <result column="storeNumber" property="storeNumber"/>
+        <result column="amount" property="amount"/>
+        <association property="depot" javaType="com.wms.domain.Depot" columnPrefix="d_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="product" javaType="com.wms.domain.Product" columnPrefix="p_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+            <result column="sn" property="sn"/>
+            <result column="brandName" property="brandName"/>
+        </association>
+    </resultMap>
+    <insert id="insert" parameterType="com.wms.domain.ProductStock" useGeneratedKeys="true" keyProperty="id">
+    insert into `productstock` (price, storeNumber, amount, product_id, depot_id)
+    values (#{price}, #{storeNumber}, #{amount}, #{product.id}, #{depot.id})
+  </insert>
+    <update id="updateByPrimaryKey" parameterType="com.wms.domain.ProductStock">
+    update `productstock`
+    set price = #{price},
+      storeNumber = #{storeNumber},
+      amount = #{amount},
+      product_id = #{product.id},
+      depot_id = #{depot.id}
+    where id = #{id}
+  </update>
+
+    <sql id="base_from">
+    productstock ps join depot d on ps.depot_id = d.id join product p on ps.product_id = p.id
+  </sql>
+
+    <sql id="base_columns">
+        ps.id,ps.storeNumber,ps.price,ps.amount,ps.product_id,ps.depot_id,
+            d.id d_id,d.name d_name,
+            p.id p_id,p.sn p_sn,p.name p_name,p.brandName p_brandName
+    </sql>
+
+    <sql id="base_where">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (p.name like '%' #{keyword} '%'  or p.sn like '%' #{keyword} '%')
+            </if>
+            <if test="depotId > -1">
+                and ps.depot_id = #{depotId}
+            </if>
+            <if test="brandId > -1">
+                and p.brand_id = #{brandId}
+            </if>
+            <if test="limitNumber != null">
+                ps.storeNumber &lt; #{limitNumber}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectByDeptIdAndProductId" resultMap="BaseResultMap" parameterType="java.lang.Long">
+    select <include refid="base_columns"/>
+    from <include refid="base_from"/>
+    where ps.depot_id = #{deptId} and ps.product_id = #{productId}
+  </select>
+
+    <select id="queryForCount" resultType="int">
+        select count(ps.id) from
+        <include refid="base_from"/>
+        <include refid="base_where"/>
+    </select>
+
+    <select id="queryForList" resultMap="BaseResultMap">
+    select <include refid="base_columns"/>
+    from <include refid="base_from"/>
+    <include refid="base_where"/>
+  </select>
+
+</mapper>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wms.mapper.OrderBillMapper">
+    <resultMap id="BaseResultMap" type="com.wms.domain.OrderBill">
+        <id column="id" property="id"/>
+        <result column="sn" property="sn"/>
+        <result column="vdate" property="vdate"/>
+        <result column="status" property="status"/>
+        <result column="totalAmount" property="totalAmount"/>
+        <result column="totalNumber" property="totalNumber"/>
+        <result column="auditTime" property="auditTime"/>
+        <result column="inputTime" property="inputTime"/>
+        <!--<result column="inputUser_id" property="inputUser.id" />-->
+        <association property="inputUser" javaType="com.wms.domain.Employee" columnPrefix="iu_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="auditor" javaType="com.wms.domain.Employee" columnPrefix="au_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="supplier" javaType="com.wms.domain.Supplier" columnPrefix="s_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+
+        <collection property="items" ofType="com.wms.domain.OrderBillItem"
+                    column="id" select="com.wms.mapper.OrderBillItemMapper.selectItemsByOrderBillId"/>
+
+    </resultMap>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from `orderbill`
+    where id = #{id}
+  </delete>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    insert into `orderbill` (sn, vdate, status, totalAmount, totalNumber, auditTime, 
+      inputTime, inputUser_id, auditor_id, supplier_id)
+    values (#{sn}, #{vdate}, #{status}, #{totalAmount}, #{totalNumber}, #{auditTime}, 
+      #{inputTime}, #{inputUser.id}, #{auditor.id}, #{supplier.id})
+  </insert>
+    <update id="updateByPrimaryKey">
+    update `orderbill`
+    set sn = #{sn},
+      vdate = #{vdate},
+      totalAmount = #{totalAmount},
+      totalNumber = #{totalNumber},
+      supplier_id = #{supplier.id}
+    where id = #{id}
+  </update>
+    <update id="updateStatus">
+     update `orderbill`
+      set
+        auditor_id = #{auditor.id},
+        auditTime = #{auditTime},
+        status = ${status}
+    where id = #{id}
+
+  </update>
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+        select
+        <include refid="base_colmuns"/>
+        from
+        <include refid="base_table"/>
+        where o.id = #{id}
+    </select>
+    <select id="selectAll" resultMap="BaseResultMap">
+    select id, sn, vdate, status, totalAmount, totalNumber, auditTime, inputTime, inputUser_id, 
+    auditor_id, supplier_id
+    from `orderbill`
+  </select>
+    <sql id="base_colmuns">
+    o.id, o.sn, o.vdate, o.status, o.totalAmount, o.totalNumber, o.auditTime, o.inputTime, o.inputUser_id,
+    o.auditor_id, o.supplier_id,
+    iu.id iu_id,iu.name iu_name,
+    au.id au_id,au.name au_name,
+    s.id s_id,s.name s_name
+  </sql>
+    <sql id="base_table">
+    orderbill o join employee iu on o.inputUser_id = iu.id
+                left join employee au on o.auditor_id = au.id
+                join supplier s on o.supplier_id = s.id
+  </sql>
+    <sql id="base_where">
+        <where>
+            <if test="beginDate != null">
+                and o.vdate >= #{beginDate}
+            </if>
+            <if test="endDate != null">
+                and o.vdate &lt;= #{endDate}
+            </if>
+            <if test="supplierId > 0">
+                o.supplier_id = #{supplierId}
+            </if>
+            <if test="status > -1">
+                o.status = #{status}
+            </if>
+        </where>
+    </sql>
+    <select id="queryForCount" resultType="java.lang.Integer">
+        select count(o.id) from
+        <include refid="base_table"/>
+        <include refid="base_where"/>
+    </select>
+
+    <select id="queryForList" resultMap="BaseResultMap">
+        select
+        <include refid="base_colmuns"/>
+        from
+        <include refid="base_table"/>
+        <include refid="base_where"/>
+        limit #{start},#{pageSize}
+    </select>
+</mapper>

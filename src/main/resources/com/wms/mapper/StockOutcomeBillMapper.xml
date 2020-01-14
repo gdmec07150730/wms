@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wms.mapper.StockOutcomeBillMapper">
+    <resultMap id="BaseResultMap" type="com.wms.domain.StockOutcomeBill">
+        <id column="id" property="id"/>
+        <result column="sn" property="sn"/>
+        <result column="vdate" property="vdate"/>
+        <result column="status" property="status"/>
+        <result column="totalAmount" property="totalAmount"/>
+        <result column="totalNumber" property="totalNumber"/>
+        <result column="auditTime" property="auditTime"/>
+        <result column="inputTime" property="inputTime"/>
+        <!--<result column="inputUser_id" property="inputUser.id" />-->
+        <association property="inputUser" javaType="com.wms.domain.Employee" columnPrefix="iu_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="auditor" javaType="com.wms.domain.Employee" columnPrefix="au_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="depot" javaType="com.wms.domain.Depot" columnPrefix="d_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <association property="client" javaType="com.wms.domain.Client" columnPrefix="c_">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+        </association>
+        <collection property="items" ofType="com.wms.domain.StockOutcomeBillItem"
+                    column="id" select="com.wms.mapper.StockOutcomeBillItemMapper.selectItemsByBillId"/>
+    </resultMap>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from `stockoutcomebill`
+    where id = #{id}
+  </delete>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    insert into `stockoutcomebill` (sn, vdate, status, totalAmount, totalNumber, auditTime, 
+      inputTime, inputUser_id, auditor_id, depot_id,client_id)
+    values (#{sn}, #{vdate}, #{status}, #{totalAmount}, #{totalNumber}, #{auditTime}, 
+      #{inputTime}, #{inputUser.id}, #{auditor.id}, #{depot.id},#{client.id})
+  </insert>
+    <update id="updateByPrimaryKey">
+    update `stockoutcomebill`
+    set sn = #{sn},
+      vdate = #{vdate},
+      totalAmount = #{totalAmount},
+      status = #{status},
+      totalNumber = #{totalNumber},
+      depot_id = #{depot.id},
+      client_id = #{client.id}
+    where id = #{id}
+  </update>
+    <update id="updateStatus">
+     update `stockoutcomebill`
+      set
+        auditor_id = #{auditor.id},
+        auditTime = #{auditTime},
+        status = ${status}
+    where id = #{id}
+
+  </update>
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+        select
+        <include refid="base_colmuns"/>
+        from
+        <include refid="base_table"/>
+        where o.id = #{id}
+    </select>
+    <select id="selectAll" resultMap="BaseResultMap">
+    select id, sn, vdate, status, totalAmount, totalNumber, auditTime, inputTime, inputUser_id, 
+    auditor_id, depot_id,client_id
+    from `stockoutcomebill`
+  </select>
+    <sql id="base_colmuns">
+    o.id, o.sn, o.vdate, o.status, o.totalAmount, o.totalNumber, o.auditTime, o.inputTime, o.inputUser_id,
+    o.auditor_id, o.depot_id,
+    iu.id iu_id,iu.name iu_name,
+    d.id d_id,d.name d_name,
+    au.id au_id,au.name au_name,
+    c.id c_id,c.name c_name
+  </sql>
+    <sql id="base_table">
+    stockoutcomebill o join employee iu on o.inputUser_id = iu.id
+                left join employee au on o.auditor_id = au.id
+                join depot d on o.depot_id = d.id
+                left join client c on o.client_id = c.id
+  </sql>
+    <sql id="base_where">
+        <where>
+            <if test="beginDate != null">
+                and o.vdate >= #{beginDate}
+            </if>
+            <if test="endDate != null">
+                and o.vdate &lt;= #{endDate}
+            </if>
+            <if test="depotId > 0">
+                and o.depot_id = #{depotId}
+            </if>
+            <if test="status > -1">
+               and o.status = #{status}
+            </if>
+            <if test="clientId > 0">
+              and o.client_id = #{clientId}
+            </if>
+        </where>
+    </sql>
+    <select id="queryForCount" resultType="java.lang.Integer">
+        select count(o.id) from
+        <include refid="base_table"/>
+        <include refid="base_where"/>
+    </select>
+
+    <select id="queryForList" resultMap="BaseResultMap">
+        select
+        <include refid="base_colmuns"/>
+        from
+        <include refid="base_table"/>
+        <include refid="base_where"/>
+        limit #{start},#{pageSize}
+    </select>
+</mapper>
